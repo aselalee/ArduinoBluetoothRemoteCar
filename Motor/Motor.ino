@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 const uint8_t ENL=11;
 const uint8_t ML1=8; //IN1
 const uint8_t ML2=9; //IN2
@@ -180,11 +182,16 @@ void Left() {
 
 Direction cmdDirection;
 CommandParser parser;
+int servoPos;
+int servoOffset;
+Servo servo;
 
 void setup() {
   Serial.begin(9600);
-  parser = CommandParser();
   parser.Reset();
+  servo.attach(4);
+  servoPos = 0;
+  servoOffset = 2;
   pinMode(ENL, OUTPUT);
   pinMode(ML1, OUTPUT);
   pinMode(ML2, OUTPUT);
@@ -228,6 +235,9 @@ void loop() {
     default:
       Stop();
       break;
-     
   }
+  if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
+  servoPos += servoOffset;
+  servo.write(servoPos);
+  delay(15);
 }
