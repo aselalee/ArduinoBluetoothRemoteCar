@@ -1,12 +1,14 @@
 #include <Servo.h>
 
-const uint8_t ENL=11;
-const uint8_t ML1=8; //IN1
-const uint8_t ML2=9; //IN2
+const uint8_t ENL=6; //ENA
+const uint8_t ML1=7; //IN1
+const uint8_t ML2=8; //IN2
 
-const uint8_t ENR=10;
-const uint8_t MR1=6; //IN3
-const uint8_t MR2=7; //IN4
+const uint8_t MR1=13; //IN3
+const uint8_t MR2=12; //IN4
+const uint8_t ENR=11; //ENB;
+const uint8_t TRIG = A0;
+const uint8_t ECHO = A1;
 
 enum Direction {
   STOP,
@@ -77,22 +79,27 @@ class CommandParser
       switch (CmdBuffer[0])
       {
         case 'U':
-          if (CmdBuffer[1] == 'U') return FORWARD;
-          else if (CmdBuffer[1] == 'L') return FORWARDLEFT;
-          else return FORWARDRIGHT;
+          if (CmdBuffer[1] == 'U') dir = FORWARD;
+          else if (CmdBuffer[1] == 'L') dir = FORWARDLEFT;
+          else dir = FORWARDRIGHT;
+          break;
         case 'D':
-          if (CmdBuffer[1] == 'D') return BACK;
-          else if (CmdBuffer[1] == 'L') return BACKLEFT;
-          else return BACKRIGHT;
+          if (CmdBuffer[1] == 'D') dir = BACK;
+          else if (CmdBuffer[1] == 'L') dir = BACKLEFT;
+          else dir = BACKRIGHT;
+          break;
         case 'L':
           //no needto check the second letter. There's no other command starting with L.
-          return LEFT;
+          dir = LEFT;
+          break;
         case 'R':
         //no needto check the second letter. There's no other command starting with R.
-          return RIGHT;
+          dir = RIGHT;
+          break;
         default:
-          return STOP;
+          dir = STOP;
       }
+      return dir;
     }
   private:
     char CmdBuffer[BuffSize];
@@ -106,6 +113,7 @@ void Back() {
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 200);
   analogWrite(ENR, 200);
+  Serial.print("Back\n");
 }
 
 void BackLeft() {
@@ -115,6 +123,7 @@ void BackLeft() {
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 100);
   analogWrite(ENR, 80);
+  Serial.print("BackLeft\n");
 }
 
 void BackRight() {
@@ -124,6 +133,7 @@ void BackRight() {
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 200);
   analogWrite(ENR, 80);
+  Serial.print("BackRight\n");
 }
 
 void Forward() {
@@ -133,6 +143,7 @@ void Forward() {
   digitalWrite(MR2, HIGH);
   analogWrite(ENL, 200);
   analogWrite(ENR, 200);
+  Serial.print("Forward\n");
 }
 
 void ForwardLeft() {
@@ -142,6 +153,7 @@ void ForwardLeft() {
   digitalWrite(MR2, HIGH);
   analogWrite(ENL, 80);
   analogWrite(ENR, 200);
+  Serial.print("ForwardLeft\n");
 }
 
 void ForwardRight() {
@@ -151,6 +163,7 @@ void ForwardRight() {
   digitalWrite(MR2, HIGH);
   analogWrite(ENL, 200);
   analogWrite(ENR, 80);
+  Serial.print("ForwardRight\n");
 }
 
 void Stop() {
@@ -160,6 +173,7 @@ void Stop() {
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 0);
   analogWrite(ENR, 0);
+  Serial.print("Stop\n");
 }
 
 void Right() {
@@ -169,6 +183,7 @@ void Right() {
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 50);
   analogWrite(ENR, 200);
+  Serial.print("Right\n");
 }
 
 void Left() {
@@ -178,13 +193,57 @@ void Left() {
   digitalWrite(MR2, HIGH);
   analogWrite(ENL, 200);
   analogWrite(ENR, 50);
+  Serial.print("Left\n");
 }
 
-Direction cmdDirection;
+void EmergencyStop()
+{
+  Back();
+  delay(250);
+  Stop();
+  Serial.print("Emergency Stop\n");
+}
+
+class Ultrosonic
+{
+  public:
+    Ultrosonic(uint8_t trig, uint8_t echo) :
+      trigPin(trig)
+    , echoPin(echo)
+    , prevReading(0)
+    , prevTimeStamp(0)
+    {
+    };
+    ~Ultrosonic() {};
+    uint32_t GetObjectDistance_1() { return 101; }
+    uint32_t GetObjectDistance()
+    {
+      uint32_t currentTimeStamp = millis();
+      if ((currentTimeStamp - prevTimeStamp) <= 60)
+      {
+        return prevReading;
+      }
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+      long duration = pulseIn(echoPin, HIGH);
+      prevTimeStamp = millis();
+      prevReading = duration * 0.170;
+      return prevReading;
+    }
+  private:
+    uint8_t trigPin;
+    uint8_t echoPin;
+    uint32_t prevReading;
+    uint32_t prevTimeStamp;
+};
+
+Direction cmdDirection = STOP;
 CommandParser parser;
 int servoPos;
 int servoOffset;
 Servo servo;
+Ultrosonic sonicSensor(TRIG,ECHO);
 
 void setup() {
   Serial.begin(9600);
@@ -198,6 +257,9 @@ void setup() {
   pinMode(ENR, OUTPUT);
   pinMode(MR1, OUTPUT);
   pinMode(MR2, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(TRIG, OUTPUT);
+  servo.write(90); 
 }
 
 void loop() {
@@ -205,39 +267,47 @@ void loop() {
   {
     cmdDirection = parser.GetDirection();
     parser.PrintCommand();
+    switch(cmdDirection)
+    {
+      case FORWARDRIGHT:
+        ForwardRight();
+        break;
+      case FORWARD:
+        Forward();
+        break;
+      case FORWARDLEFT:
+        ForwardLeft();
+        break;
+      case BACKRIGHT:
+        BackRight();
+        break;
+      case BACK:
+        Back();
+        break;
+      case BACKLEFT:
+        BackLeft();
+        break;
+      case LEFT:
+        Left();
+        break;
+      case RIGHT:
+        Right();
+        break;
+      default:
+        Stop();
+        break;
+    }
   }
-  switch(cmdDirection)
+  if (sonicSensor.GetObjectDistance() < 100 &&
+      (cmdDirection == FORWARD ||
+       cmdDirection == FORWARDLEFT ||
+       cmdDirection == FORWARDRIGHT) )
   {
-    case FORWARDRIGHT:
-      ForwardRight();
-      break;
-    case FORWARD:
-      Forward();
-      break;
-    case FORWARDLEFT:
-      ForwardLeft();
-      break;
-    case BACKRIGHT:
-      BackRight();
-      break;
-    case BACK:
-      Back();
-      break;
-    case BACKLEFT:
-      BackLeft();
-      break;
-    case LEFT:
-      Left();
-      break;
-    case RIGHT:
-      Right();
-      break;
-    default:
-      Stop();
-      break;
+    EmergencyStop();
+    cmdDirection = STOP;
   }
-  if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
-  servoPos += servoOffset;
-  servo.write(servoPos);
-  delay(15);
+  //if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
+  //servoPos += servoOffset;
+  //servo.write(servoPos);
+  //delay(15); //Settle servo
 }
