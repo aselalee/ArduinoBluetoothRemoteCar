@@ -247,8 +247,8 @@ class Ultrosonic
 
 Direction cmdDirection = STOP;
 CommandParser parser;
-uint8_t servoPos;
-uint8_t servoOffset;
+int16_t servoPos;
+int8_t servoOffset;
 Servo servo;
 Ultrosonic sonicSensor(TRIG,ECHO);
 
