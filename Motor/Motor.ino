@@ -1,14 +1,19 @@
 #include <Servo.h>
 
-const uint8_t ENL=6; //ENA
-const uint8_t ML1=7; //IN1
-const uint8_t ML2=8; //IN2
+const uint8_t ENL = 6;  //ENA
+const uint8_t ML1 = 7;  //IN1
+const uint8_t ML2 = 8;  //IN2
+const uint8_t MR1 = 13; //IN3
+const uint8_t MR2 = 12; //IN4
+const uint8_t ENR = 11; //ENB;
 
-const uint8_t MR1=13; //IN3
-const uint8_t MR2=12; //IN4
-const uint8_t ENR=11; //ENB;
-const uint8_t TRIG = A0;
-const uint8_t ECHO = A1;
+const uint8_t TRIG = A0; //Ultrasonic trigger
+const uint8_t ECHO = A1; //Ultrasonic echo
+
+const uint8_t FS = 2; //Line sensor front
+const uint8_t BS = 3; //Line sensor back
+
+const uint8_t MS = 4; //Micro servo
 
 enum Direction {
   STOP,
@@ -20,6 +25,11 @@ enum Direction {
   BACKRIGHT,
   LEFT,
   RIGHT
+};
+
+enum State {
+  RUNNING,
+  HALT
 };
 
 #define BuffSize 8
@@ -199,7 +209,7 @@ void Left() {
 void EmergencyStop()
 {
   Back();
-  delay(250);
+  delay(150);
   Stop();
   Serial.print("Emergency Stop\n");
 }
@@ -218,7 +228,7 @@ class Ultrosonic
     uint32_t GetObjectDistance_1() { return 101; }
     uint32_t GetObjectDistance_mm()
     {
-      if ((millis() - prevTimeStamp) <= 60)
+      if ((millis() - prevTimeStamp) <= 1) //Skipping readas within 1 milli second
       {
         return prevReading;
       }
@@ -245,19 +255,25 @@ class Ultrosonic
     uint32_t prevTimeStamp;
 };
 
-Direction cmdDirection = STOP;
+Direction cmdDirection;
+State currentState;
 CommandParser parser;
 int16_t servoPos;
 int8_t servoOffset;
 Servo servo;
 Ultrosonic sonicSensor(TRIG,ECHO);
+uint32_t lineDetectDelay;
 
 void setup() {
   Serial.begin(9600);
   parser.Reset();
-  servo.attach(4);
+  servo.attach(MS);
+  cmdDirection = STOP;
+  currentState = HALT;
   servoPos = 0;
   servoOffset = 2;
+  servo.write(90);
+  lineDetectDelay = 0; 
   pinMode(ENL, OUTPUT);
   pinMode(ML1, OUTPUT);
   pinMode(ML2, OUTPUT);
@@ -266,7 +282,8 @@ void setup() {
   pinMode(MR2, OUTPUT);
   pinMode(ECHO, INPUT);
   pinMode(TRIG, OUTPUT);
-  servo.write(90); 
+  pinMode(FS, INPUT);
+  pinMode(BS, INPUT);
 }
 
 void loop() {
@@ -305,13 +322,30 @@ void loop() {
         break;
     }
   }
-  if (sonicSensor.GetObjectDistance_mm() < 100 &&
-      (cmdDirection == FORWARD ||
-       cmdDirection == FORWARDLEFT ||
-       cmdDirection == FORWARDRIGHT) )
+  if (sonicSensor.GetObjectDistance_mm() < 110)
   {
-    EmergencyStop();
-    cmdDirection = STOP;
+    if(cmdDirection == FORWARD ||
+       cmdDirection == FORWARDLEFT ||
+       cmdDirection == FORWARDRIGHT)
+    {
+      Stop();
+      if (currentState == RUNNING)
+      {
+        EmergencyStop();
+      }
+      cmdDirection = STOP;
+    }
+    currentState = HALT;
+  }
+  else
+  {
+    currentState = RUNNING;
+  }
+  if ((millis() - lineDetectDelay) > 500) //Skipping readas within 500 milli second
+  {
+    digitalRead(BS) == HIGH ? Serial.print("BS Black\n"): Serial.print("BS WHITE\n");
+    digitalRead(FS) == HIGH ? Serial.print("FS Black\n"): Serial.print("FS WHITE\n");
+    lineDetectDelay = millis();
   }
   //if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
   //servoPos += servoOffset;
