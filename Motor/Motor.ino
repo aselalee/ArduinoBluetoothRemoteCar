@@ -216,10 +216,9 @@ class Ultrosonic
     };
     ~Ultrosonic() {};
     uint32_t GetObjectDistance_1() { return 101; }
-    uint32_t GetObjectDistance()
+    uint32_t GetObjectDistance_mm()
     {
-      uint32_t currentTimeStamp = millis();
-      if ((currentTimeStamp - prevTimeStamp) <= 60)
+      if ((millis() - prevTimeStamp) <= 60)
       {
         return prevReading;
       }
@@ -231,12 +230,12 @@ class Ultrosonic
       //Timeout is based on the time required to detect an object 1m away.
       //Sound wave has to travel 1m to the object and then 1m back to the sensor.
       //Timeout = (2/340) * 1000000 micro seconds = 5882.35 ~ 6000;
-      long duration = pulseIn(echoPin, HIGH, 6000);
-      prevTimeStamp = millis();
+      uint32_t duration = pulseIn(echoPin, HIGH, 6000);
       //Duration is time taken by the sound wave to travel forward
       //hit the object and then travel back to the receiver.
       //Distance = (340 * (duration/1000000) *1000)/2 mm
-      prevReading = duration * 0.170;
+      (duration == 0) ? prevReading = 1000 : prevReading = duration * 0.170;
+      prevTimeStamp = millis();
       return prevReading;
     }
   private:
@@ -248,8 +247,8 @@ class Ultrosonic
 
 Direction cmdDirection = STOP;
 CommandParser parser;
-int servoPos;
-int servoOffset;
+uint8_t servoPos;
+uint8_t servoOffset;
 Servo servo;
 Ultrosonic sonicSensor(TRIG,ECHO);
 
@@ -306,7 +305,7 @@ void loop() {
         break;
     }
   }
-  if (sonicSensor.GetObjectDistance() < 100 &&
+  if (sonicSensor.GetObjectDistance_mm() < 100 &&
       (cmdDirection == FORWARD ||
        cmdDirection == FORWARDLEFT ||
        cmdDirection == FORWARDRIGHT) )
