@@ -226,8 +226,16 @@ class Ultrosonic
       digitalWrite(trigPin, HIGH);
       delayMicroseconds(10);
       digitalWrite(trigPin, LOW);
-      long duration = pulseIn(echoPin, HIGH);
+      //Speed of sound 340m/s
+      //S = UT; S-Distance, U-Velocity, T-Time
+      //Timeout is based on the time required to detect an object 1m away.
+      //Sound wave has to travel 1m to the object and then 1m back to the sensor.
+      //Timeout = (2/340) * 1000000 micro seconds = 5882.35 ~ 6000;
+      long duration = pulseIn(echoPin, HIGH, 6000);
       prevTimeStamp = millis();
+      //Duration is time taken by the sound wave to travel forward
+      //hit the object and then travel back to the receiver.
+      //Distance = (340 * (duration/1000000) *1000)/2 mm
       prevReading = duration * 0.170;
       return prevReading;
     }
