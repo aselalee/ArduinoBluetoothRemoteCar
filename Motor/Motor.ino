@@ -131,8 +131,8 @@ void BackLeft() {
   digitalWrite(ML2, LOW);
   digitalWrite(MR1, HIGH);
   digitalWrite(MR2, LOW);
-  analogWrite(ENL, 100);
-  analogWrite(ENR, 80);
+  analogWrite(ENL, 200);
+  analogWrite(ENR, 100);
   Serial.print("BackLeft\n");
 }
 
@@ -142,7 +142,7 @@ void BackRight() {
   digitalWrite(MR1, HIGH);
   digitalWrite(MR2, LOW);
   analogWrite(ENL, 200);
-  analogWrite(ENR, 80);
+  analogWrite(ENR, 100);
   Serial.print("BackRight\n");
 }
 
@@ -161,7 +161,7 @@ void ForwardLeft() {
   digitalWrite(ML2, HIGH);
   digitalWrite(MR1, LOW);
   digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 80);
+  analogWrite(ENL, 100);
   analogWrite(ENR, 200);
   Serial.print("ForwardLeft\n");
 }
@@ -172,7 +172,7 @@ void ForwardRight() {
   digitalWrite(MR1, LOW);
   digitalWrite(MR2, HIGH);
   analogWrite(ENL, 200);
-  analogWrite(ENR, 80);
+  analogWrite(ENR, 100);
   Serial.print("ForwardRight\n");
 }
 
@@ -191,8 +191,8 @@ void Right() {
   digitalWrite(ML2, HIGH);
   digitalWrite(MR1, HIGH);
   digitalWrite(MR2, LOW);
-  analogWrite(ENL, 50);
-  analogWrite(ENR, 200);
+  analogWrite(ENL, 200);
+  analogWrite(ENR, 100);
   Serial.print("Right\n");
 }
 
@@ -201,8 +201,8 @@ void Left() {
   digitalWrite(ML2, LOW);
   digitalWrite(MR1, LOW);
   digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 50);
+  analogWrite(ENL, 100);
+  analogWrite(ENR, 200);
   Serial.print("Left\n");
 }
 
@@ -343,8 +343,8 @@ void loop() {
   }
   if ((millis() - lineDetectDelay) > 500) //Skipping readas within 500 milli second
   {
-    digitalRead(BS) == HIGH ? Serial.print("BS Black\n"): Serial.print("BS WHITE\n");
-    digitalRead(FS) == HIGH ? Serial.print("FS Black\n"): Serial.print("FS WHITE\n");
+    //digitalRead(BS) == HIGH ? Serial.print("BS Black\n"): Serial.print("BS WHITE\n");
+    //digitalRead(FS) == HIGH ? Serial.print("FS Black\n"): Serial.print("FS WHITE\n");
     lineDetectDelay = millis();
   }
   //if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
