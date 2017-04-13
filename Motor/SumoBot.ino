@@ -1,3 +1,5 @@
+#include "CommandParser.h"
+#include "Ultrasonic.h"
 #include <Servo.h>
 
 const uint8_t ENL = 6;  //ENA
@@ -15,105 +17,9 @@ const uint8_t BS = 3; //Line sensor back
 
 const uint8_t MS = 4; //Micro servo
 
-enum Direction {
-  STOP,
-  FORWARD,
-  FORWARDLEFT,
-  FORWARDRIGHT,
-  BACK,
-  BACKLEFT,
-  BACKRIGHT,
-  LEFT,
-  RIGHT
-};
-
 enum State {
   RUNNING,
   HALT
-};
-
-#define BuffSize 8
-#define CmdLength 4
-class CommandParser
-{
-  public:
-    CommandParser() {};
-    ~CommandParser() {};
-    void Reset()
-    {
-      pChar = CmdBuffer;
-      memset(CmdBuffer, 0, BuffSize);
-    }
-    void PrintCommand()
-    {
-      Serial.print("<");
-      Serial.print(CmdBuffer);
-    }
-    bool IsCmdValidLength()
-    {
-      uint8_t count = 0;
-      for(count;(count < BuffSize) && (CmdBuffer[count] != '\0');count++);
-      return count == CmdLength;
-    }
-    bool CommandReady()
-    {
-      while (Serial.available() > 0)
-      {
-        if (pChar < (CmdBuffer + BuffSize - 1)) //One character for null termination.
-        {
-          *pChar = Serial.read();
-          if (*pChar == '\n')
-          {
-            //Have received a full command.
-            //Return now. Rest of the the serial data if any will
-            //be read next time as the next command.
-            *(pChar + 1) = '\0'; //Null terminate the string
-            pChar = CmdBuffer; //Reset pointer
-            return IsCmdValidLength(); //If command length is invalid, it's automatically discarded.
-          }
-          pChar++;
-        }
-        else
-        {
-          //Erronous Command.
-          //We expect all commands to be less than BuffSize - 1.
-          //Reset pointer.
-          pChar = CmdBuffer;
-        }
-      }
-      return false;
-    }
-    Direction GetDirection()
-    {
-      Direction dir = STOP;
-      switch (CmdBuffer[0])
-      {
-        case 'U':
-          if (CmdBuffer[1] == 'U') dir = FORWARD;
-          else if (CmdBuffer[1] == 'L') dir = FORWARDLEFT;
-          else dir = FORWARDRIGHT;
-          break;
-        case 'D':
-          if (CmdBuffer[1] == 'D') dir = BACK;
-          else if (CmdBuffer[1] == 'L') dir = BACKLEFT;
-          else dir = BACKRIGHT;
-          break;
-        case 'L':
-          //no needto check the second letter. There's no other command starting with L.
-          dir = LEFT;
-          break;
-        case 'R':
-        //no needto check the second letter. There's no other command starting with R.
-          dir = RIGHT;
-          break;
-        default:
-          dir = STOP;
-      }
-      return dir;
-    }
-  private:
-    char CmdBuffer[BuffSize];
-    char* pChar;
 };
 
 void Back() {
@@ -214,59 +120,21 @@ void EmergencyStop()
   Serial.print("Emergency Stop\n");
 }
 
-class Ultrosonic
-{
-  public:
-    Ultrosonic(uint8_t trig, uint8_t echo) :
-      trigPin(trig)
-    , echoPin(echo)
-    , prevReading(0)
-    , prevTimeStamp(0)
-    {
-    };
-    ~Ultrosonic() {};
-    uint32_t GetObjectDistance_1() { return 101; }
-    uint32_t GetObjectDistance_mm()
-    {
-      if ((millis() - prevTimeStamp) <= 1) //Skipping readas within 1 milli second
-      {
-        return prevReading;
-      }
-      digitalWrite(trigPin, HIGH);
-      delayMicroseconds(10);
-      digitalWrite(trigPin, LOW);
-      //Speed of sound 340m/s
-      //S = UT; S-Distance, U-Velocity, T-Time
-      //Timeout is based on the time required to detect an object 1m away.
-      //Sound wave has to travel 1m to the object and then 1m back to the sensor.
-      //Timeout = (2/340) * 1000000 micro seconds = 5882.35 ~ 6000;
-      uint32_t duration = pulseIn(echoPin, HIGH, 6000);
-      //Duration is time taken by the sound wave to travel forward
-      //hit the object and then travel back to the receiver.
-      //Distance = (340 * (duration/1000000) *1000)/2 mm
-      (duration == 0) ? prevReading = 1000 : prevReading = duration * 0.170;
-      prevTimeStamp = millis();
-      return prevReading;
-    }
-  private:
-    uint8_t trigPin;
-    uint8_t echoPin;
-    uint32_t prevReading;
-    uint32_t prevTimeStamp;
-};
 
 Direction cmdDirection;
 State currentState;
-CommandParser parser;
 int16_t servoPos;
 int8_t servoOffset;
-Servo servo;
-Ultrosonic sonicSensor(TRIG,ECHO);
 uint32_t lineDetectDelay;
+
+CommandParser parser;
+Servo servo;
+Ultrasonic sonicSensor(TRIG,ECHO);
 
 void setup() {
   Serial.begin(9600);
-  parser.Reset();
+  parser.Begin();
+  sonicSensor.Begin();
   servo.attach(MS);
   cmdDirection = STOP;
   currentState = HALT;
@@ -280,8 +148,6 @@ void setup() {
   pinMode(ENR, OUTPUT);
   pinMode(MR1, OUTPUT);
   pinMode(MR2, OUTPUT);
-  pinMode(ECHO, INPUT);
-  pinMode(TRIG, OUTPUT);
   pinMode(FS, INPUT);
   pinMode(BS, INPUT);
 }
