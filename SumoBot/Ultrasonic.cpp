@@ -14,7 +14,7 @@ Ultrasonic::~Ultrasonic()
 {
 };
 
-void Ultrasonic::Begin()
+void Ultrasonic::Begin() const
 {
   pinMode(m_EchoPin, INPUT);
   pinMode(m_TrigPin, OUTPUT);

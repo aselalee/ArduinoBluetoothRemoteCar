@@ -1,0 +1,18 @@
+
+#ifndef _DIRECTIONS_H_
+#define _DIRECTIONS_H_
+
+enum Direction {
+  STOP = 0,
+  FORWARD,
+  FORWARDLEFT,
+  FORWARDRIGHT,
+  BACK,
+  BACKLEFT,
+  BACKRIGHT,
+  LEFT,
+  RIGHT,
+  EMERGENCYSTOP
+};
+
+#endif //_DIRECTIONS_H_

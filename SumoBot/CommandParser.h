@@ -2,23 +2,12 @@
 #ifndef _COMMANDPARSER_H_
 #define _COMMANDPARSER_H_
 
+#include "Directions.h"
 #include <Arduino.h>
 
 #define BUFFLEN 8
 #define CMDLEN 4
 #define CMDTERM '\n'
-
-enum Direction {
-  STOP = 0,
-  FORWARD,
-  FORWARDLEFT,
-  FORWARDRIGHT,
-  BACK,
-  BACKLEFT,
-  BACKRIGHT,
-  LEFT,
-  RIGHT
-};
 
 class CommandParser
 {

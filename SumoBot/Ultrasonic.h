@@ -9,7 +9,7 @@ class Ultrasonic
   public:
     Ultrasonic(uint8_t const trig, uint8_t const echo);
     virtual ~Ultrasonic();
-    void Begin();
+    void Begin() const;
     uint32_t GetObjectDistance_mm();
   private:
     uint8_t m_TrigPin;

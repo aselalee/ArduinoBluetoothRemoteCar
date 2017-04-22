@@ -1,6 +1,8 @@
 #include "CommandParser.h"
 #include "Ultrasonic.h"
-#include <Servo.h>
+#include "Motors.h"
+#include "MicroServo.h"
+#include "Directions.h"
 
 const uint8_t ENL = 6;  //ENA
 const uint8_t ML1 = 7;  //IN1
@@ -22,105 +24,6 @@ enum State {
   HALT
 };
 
-void Back() {
-  digitalWrite(ML1, HIGH);
-  digitalWrite(ML2, LOW);
-  digitalWrite(MR1, HIGH);
-  digitalWrite(MR2, LOW);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 200);
-  Serial.print("Back\n");
-}
-
-void BackLeft() {
-  digitalWrite(ML1, HIGH);
-  digitalWrite(ML2, LOW);
-  digitalWrite(MR1, HIGH);
-  digitalWrite(MR2, LOW);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 100);
-  Serial.print("BackLeft\n");
-}
-
-void BackRight() {
-  digitalWrite(ML1, HIGH);
-  digitalWrite(ML2, LOW);
-  digitalWrite(MR1, HIGH);
-  digitalWrite(MR2, LOW);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 100);
-  Serial.print("BackRight\n");
-}
-
-void Forward() {
-  digitalWrite(ML1, LOW);
-  digitalWrite(ML2, HIGH);
-  digitalWrite(MR1, LOW);
-  digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 200);
-  Serial.print("Forward\n");
-}
-
-void ForwardLeft() {
-  digitalWrite(ML1, LOW);
-  digitalWrite(ML2, HIGH);
-  digitalWrite(MR1, LOW);
-  digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 100);
-  analogWrite(ENR, 200);
-  Serial.print("ForwardLeft\n");
-}
-
-void ForwardRight() {
-  digitalWrite(ML1, LOW);
-  digitalWrite(ML2, HIGH);
-  digitalWrite(MR1, LOW);
-  digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 100);
-  Serial.print("ForwardRight\n");
-}
-
-void Stop() {
-  digitalWrite(ML1, LOW);
-  digitalWrite(ML2, LOW);
-  digitalWrite(MR1, LOW);
-  digitalWrite(MR2, LOW);
-  analogWrite(ENL, 0);
-  analogWrite(ENR, 0);
-  Serial.print("Stop\n");
-}
-
-void Right() {
-  digitalWrite(ML1, LOW);
-  digitalWrite(ML2, HIGH);
-  digitalWrite(MR1, HIGH);
-  digitalWrite(MR2, LOW);
-  analogWrite(ENL, 200);
-  analogWrite(ENR, 100);
-  Serial.print("Right\n");
-}
-
-void Left() {
-  digitalWrite(ML1, HIGH);
-  digitalWrite(ML2, LOW);
-  digitalWrite(MR1, LOW);
-  digitalWrite(MR2, HIGH);
-  analogWrite(ENL, 100);
-  analogWrite(ENR, 200);
-  Serial.print("Left\n");
-}
-
-void EmergencyStop()
-{
-  Back();
-  delay(150);
-  Stop();
-  Serial.print("Emergency Stop\n");
-}
-
-
 Direction cmdDirection;
 State currentState;
 int16_t servoPos;
@@ -128,26 +31,21 @@ int8_t servoOffset;
 uint32_t lineDetectDelay;
 
 CommandParser parser;
-Servo servo;
-Ultrasonic sonicSensor(TRIG,ECHO);
+MicroServo servo(MS, 0, 180, 2);
+Ultrasonic sonicSensor(TRIG, ECHO);
+Motors motors(ENL, ML1, ML2, ENR, MR1, MR2);
 
 void setup() {
   Serial.begin(9600);
   parser.Begin();
   sonicSensor.Begin();
-  servo.attach(MS);
+  motors.Begin();
+  servo.Begin();
+  servo.MoveTo(90);
+  
   cmdDirection = STOP;
   currentState = HALT;
-  servoPos = 0;
-  servoOffset = 2;
-  servo.write(90);
   lineDetectDelay = 0; 
-  pinMode(ENL, OUTPUT);
-  pinMode(ML1, OUTPUT);
-  pinMode(ML2, OUTPUT);
-  pinMode(ENR, OUTPUT);
-  pinMode(MR1, OUTPUT);
-  pinMode(MR2, OUTPUT);
   pinMode(FS, INPUT);
   pinMode(BS, INPUT);
 }
@@ -157,36 +55,8 @@ void loop() {
   {
     cmdDirection = parser.GetDirection();
     parser.PrintCommand();
-    switch(cmdDirection)
-    {
-      case FORWARDRIGHT:
-        ForwardRight();
-        break;
-      case FORWARD:
-        Forward();
-        break;
-      case FORWARDLEFT:
-        ForwardLeft();
-        break;
-      case BACKRIGHT:
-        BackRight();
-        break;
-      case BACK:
-        Back();
-        break;
-      case BACKLEFT:
-        BackLeft();
-        break;
-      case LEFT:
-        Left();
-        break;
-      case RIGHT:
-        Right();
-        break;
-      default:
-        Stop();
-        break;
-    }
+    motors.MoveMotors(cmdDirection);
+
   }
   if (sonicSensor.GetObjectDistance_mm() < 110)
   {
@@ -194,12 +64,12 @@ void loop() {
        cmdDirection == FORWARDLEFT ||
        cmdDirection == FORWARDRIGHT)
     {
-      Stop();
+      cmdDirection = STOP;
+      motors.MoveMotors(cmdDirection);
       if (currentState == RUNNING)
       {
-        EmergencyStop();
+        motors.MoveMotors(EMERGENCYSTOP);
       }
-      cmdDirection = STOP;
     }
     currentState = HALT;
   }
@@ -213,8 +83,6 @@ void loop() {
     //digitalRead(FS) == HIGH ? Serial.print("FS Black\n"): Serial.print("FS WHITE\n");
     lineDetectDelay = millis();
   }
-  //if (servoPos > 180 || servoPos < 0) servoOffset = servoOffset * -1;
-  //servoPos += servoOffset;
-  //servo.write(servoPos);
+  //servo.Rotate();
   //delay(15); //Settle servo
 }
