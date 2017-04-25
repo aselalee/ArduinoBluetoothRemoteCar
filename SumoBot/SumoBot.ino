@@ -3,6 +3,7 @@
 #include "Motors.h"
 #include "MicroServo.h"
 #include "Directions.h"
+#include "LineDetection.h"
 
 const uint8_t ENL = 6;  //ENA
 const uint8_t ML1 = 7;  //IN1
@@ -26,14 +27,12 @@ enum State {
 
 Direction cmdDirection;
 State currentState;
-int16_t servoPos;
-int8_t servoOffset;
-uint32_t lineDetectDelay;
 
 CommandParser parser;
 MicroServo servo(MS, 0, 180, 2);
 Ultrasonic sonicSensor(TRIG, ECHO);
 Motors motors(ENL, ML1, ML2, ENR, MR1, MR2);
+LineDetection lineDetection(FS, BS);
 
 void setup() {
   Serial.begin(9600);
@@ -42,12 +41,10 @@ void setup() {
   motors.Begin();
   servo.Begin();
   servo.MoveTo(90);
+  lineDetection.Begin();
   
   cmdDirection = STOP;
   currentState = HALT;
-  lineDetectDelay = 0; 
-  pinMode(FS, INPUT);
-  pinMode(BS, INPUT);
 }
 
 void loop() {
@@ -77,12 +74,7 @@ void loop() {
   {
     currentState = RUNNING;
   }
-  if ((millis() - lineDetectDelay) > 500) //Skipping readas within 500 milli second
-  {
-    //digitalRead(BS) == HIGH ? Serial.print("BS Black\n"): Serial.print("BS WHITE\n");
-    //digitalRead(FS) == HIGH ? Serial.print("FS Black\n"): Serial.print("FS WHITE\n");
-    lineDetectDelay = millis();
-  }
+  lineDetection.PrintLineStatus();
   //servo.Rotate();
   //delay(15); //Settle servo
 }
