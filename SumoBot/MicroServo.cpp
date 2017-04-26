@@ -18,7 +18,7 @@ MicroServo::~MicroServo()
 {
 }
 
-void MicroServo::Begin() const
+void MicroServo::Begin()
 {
     m_Servo.attach(m_Pin);
 }

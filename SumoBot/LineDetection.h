@@ -15,7 +15,7 @@ class LineDetection
 public:
     LineDetection(uint8_t frontSensor, uint8_t backSensor);
     ~LineDetection();
-    void Begin();
+    void Begin() const;
     LineStatus BackSensor();
     LineStatus FrontSensor();
     void PrintLineStatus();

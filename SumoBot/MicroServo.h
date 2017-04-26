@@ -13,7 +13,7 @@ public:
                uint16_t const rangeMax,
                uint16_t const moveOffest);
     ~MicroServo();
-    void Begin() const;
+    void Begin();
     void Rotate();
     void MoveTo(uint16_t const pos);
 private:

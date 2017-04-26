@@ -13,7 +13,7 @@ LineDetection::~LineDetection()
 {
 }
 
-void LineDetection::Begin()
+void LineDetection::Begin() const
 {
     pinMode(m_frontSensorPin, INPUT);
     pinMode(m_backSensorPin, INPUT);
